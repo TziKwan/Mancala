@@ -1,6 +1,6 @@
 public class Mancala extends Pocket{
-    public Mancala(){
-        super();
+    public Mancala(int startingStones){
+        super(startingStones);
     }
 
     @Override

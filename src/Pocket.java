@@ -1,8 +1,8 @@
 public class Pocket {
     protected int stones;
 
-    public Pocket(){
-        stones = 4;
+    public Pocket(int startingStones){
+        stones = startingStones;
     }
 
     public int getStones() {
