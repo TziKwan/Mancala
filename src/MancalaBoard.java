@@ -1,3 +1,5 @@
+import javax.swing.plaf.multi.MultiViewportUI;
+
 public class MancalaBoard {
 
     public enum Player{
@@ -23,12 +25,11 @@ public class MancalaBoard {
 
     }
 
-
     /**
      * moves stones across the MancalaBoard
      * @param movePosition
      * @param player
-     * @return if move is successful
+     * @return the type of move made
      */
     public MoveType tryMove(int movePosition, Player player){
         if(player == player.A){
@@ -47,39 +48,81 @@ public class MancalaBoard {
         }
 
         boardSidePlayer.getPocket(movePosition).clearStones(); // empties stones.
-        MoveType moveMade = MoveType.Normal;
+        MoveType moveMade;
 
-        int playerPosition = movePosition + 1;
-        int oppositionPosition = 0;
+        MoveState moveState = new MoveState(boardSidePlayer, movePosition + 1, availableMoves, false);
+
+        // need to update player position, which board and
 
         while(availableMoves > 0){
-            availableMoves = incrementStones(boardSidePlayer, playerPosition, availableMoves);
-            availableMoves = incrementStones(boardSideOther, oppositionPosition, availableMoves);
+            moveState = incrementStones(moveState);
+            if(moveState.availableMoves > 0) {
+                moveState = updateMoveState(moveState, true, boardSideOther);
+            }
+            moveState = incrementStones(moveState);
+            if(moveState.availableMoves > 0){
+                moveState = updateMoveState(moveState, false, boardSidePlayer);
+            }
         }
 
-        /* cases:
-            is there an overflow? i.e. do we go to opponent, if so, go ahead.
-            if not, are we in mancala? if so take another move
-            if in opponent Mancala, skip it
-            are we in an empty pocket? capture (n - m)
-            otherwise simple move
-         */
+        if(moveState.boardSide == boardSideOther){
+            moveMade = MoveType.Normal;
+        }
+        else{
+            // Mancala landed
+            if(moveState.position == boardSize - 1){
+                moveMade = MoveType.Retake;
+            }
+            // Capture
+            else if (moveState.boardSide.getPocket(moveState.position).getStones() == 1){
+                moveMade = MoveType.Capture;
+            }
+            // Simple move
+            else{
+                moveMade = MoveType.Normal;
+            }
+        }
 
         return moveMade;
+
     }
 
-    private int incrementStones(BoardSide boardSide, int currentPosition, int availableMoves){
-        while (currentPosition < boardSide.getPockets().length && availableMoves > 0){
-            incrementStone(boardSide, currentPosition);
-            currentPosition++;
-            availableMoves--;
+    private MoveState updateMoveState(MoveState moveState, boolean opponent, BoardSide boardSide){
+        moveState.opponent = opponent;
+        moveState.position = 0;
+        moveState.boardSide = boardSide;
+        return moveState;
+    }
+
+    private MoveState incrementStones(MoveState moveState){
+
+        while (moveState.position < boardSize && moveState.availableMoves > 0){
+            if(moveState.position <= boardSize - 1 && !moveState.opponent) {   // skips opponent Mancala
+                incrementStone(moveState.boardSide, moveState.position);
+                moveState.availableMoves--;
+            }
+            moveState.position++;
         }
-        return availableMoves;
+        return moveState;
     }
 
     private void incrementStone(BoardSide boardSide, int incrementPosition){
         boardSide.getPocket(incrementPosition).incrementStones();
 
+    }
+
+    private class MoveState{
+        private BoardSide boardSide;
+        private int position;
+        private int availableMoves;
+        private boolean opponent;
+
+        public MoveState(BoardSide boardSide, int position, int availableMoves, boolean opponent){
+            this.boardSide = boardSide;
+            this.position  = position;
+            this.availableMoves = availableMoves;
+            this.opponent = opponent;
+        }
     }
 
 }
